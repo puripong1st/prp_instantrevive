@@ -5,7 +5,9 @@ local AED = false
 local reviving = false
 local isKPressed = false
 local kButton = 311 -- รหัสปุ่ม K
-
+local cooldownTime = 0
+local cooldownStartTime = 0
+local actionsDone = 0
 local cooldownTriggered = false
 
 Citizen.CreateThread(function()
@@ -23,17 +25,25 @@ Citizen.CreateThread(function()
             TriggerEvent("prp_instantrevive:RemoveCooldown")
             
         end
+
     end
     SetLocalPlayerAsGhost(false)
 end)
 
 RegisterNetEvent("prp_instantrevive:RemoveCooldown")
 AddEventHandler("prp_instantrevive:RemoveCooldown", function()
+    local playerPed = PlayerPedId()
+    local playerJob = ESX.GetPlayerData().job
+    local playerName = GetPlayerName(PlayerId())
+
     exports['okokNotify']:Alert("Cooldown", "รออีก 5 วินาที เพื่อที่จะลดคลูดาว", 5000, 'success')
     Citizen.Wait(5000)
     SetLocalPlayerAsGhost(false)
     passive = false
     exports['okokNotify']:Alert("Cooldown", "คุณถูกปลดคูลดาวน์", 5000, 'success')
+    if Setting['Debug-Call'] then
+    print("^5PRP-Debug : ^7Cooldown Reduced for:", playerName, playerJob and playerJob.name or "nil")
+    end
     local x, y, z = table.unpack(GetEntityCoords(playerped))
     local prop = CreateObject(GetHashKey(Setting['พร็อพ']), x, y, z + 0.2,true, true, true)
     local boneIndex = GetPedBoneIndex(playerped, 0x322c)
@@ -53,7 +63,9 @@ if Setting['ตายแล้วตัวล่องหน'] then
                 local playerped = GetPlayerPed(-1)
                 local pc = GetEntityCoords(playerped)
                 local outzone = false
-
+                local playerPed = PlayerPedId()
+                local playerJob = ESX.GetPlayerData().job
+                local playerName = GetPlayerName(PlayerId())
                 for k, v in pairs(Setting['โซนที่ไม่ติดคลูดาวน์']) do
                     outzone = GetDistanceBetweenCoords(pc, v['ตำแหน่ง'], true) > v['ระยะ']
                     if not outzone then 
@@ -64,37 +76,113 @@ if Setting['ตายแล้วตัวล่องหน'] then
                     if not passive then
                         passive = true
                         SetLocalPlayerAsGhost(true)
-                        exports['okokNotify']:Alert("Cooldown", "คุณได้ติดคลูดาวน์ (โปรดรอ)", 5000, 'error')
-
-
-                        if Setting['ตายแล้วมีพร็อพบนหัว'] then
-                        local x, y, z = table.unpack(GetEntityCoords(playerped))
-                        local prop = CreateObject(GetHashKey(Setting['พร็อพ']), x, y, z + 0.2,true, true, true)
-                        local boneIndex = GetPedBoneIndex(playerped, 0x322c)
-                        AttachEntityToEntity(prop, playerped, boneIndex, 0.25, 0.00, 0.00, 0.0, 90.00, 198.0, true, true, false, true, 1,true)
+                        exports['okokNotify']:Alert("Cooldown ", "คุณได้ติดคลูดาวน์ (โปรดรอ)", 5000, 'error')
+                        if Setting['Debug-Call'] then
+                            print("^5PRP-Debug : ^7Cooldown have :", playerName, playerJob and playerJob.name or "nil")
                         end
-                        
+    
+                        -- เรียกใช้เวลาที่ติดคูลดาวน์
+                        cooldownTime = Setting['เวลาที่ติดคลูดาวน์'] * 1000
+                        cooldownStartTime = GetGameTimer()
+    
+                        if Setting['ตายแล้วมีพร็อพบนหัว'] then
+                            local x, y, z = table.unpack(GetEntityCoords(playerped))
+                            local prop = CreateObject(GetHashKey(Setting['พร็อพ']), x, y, z + 0.2,true, true, true)
+                            local boneIndex = GetPedBoneIndex(playerped, 0x322c)
+                            AttachEntityToEntity(prop, playerped, boneIndex, 0.25, 0.00, 0.00, 0.0, 90.00, 198.0, true, true, false, true, 1,true)
+                        end
+    
                         Citizen.Wait(Setting['เวลาที่ติดคลูดาวน์'] * 1000)
                         SetLocalPlayerAsGhost(false)
                         passive = false
-                        
+    
                         if Setting['ตายแล้วมีพร็อพบนหัว'] then
-                        local position = GetEntityCoords(GetPlayerPed(PlayerId()), false)
-                        local object = GetClosestObjectOfType(position.x, position.y,position.z, 15.0,GetHashKey(Setting['พร็อพ']),false, false, false)
-                        if object ~= 0 then DeleteObject(object) end
-                        
-                    end
-                                            
+                            local position = GetEntityCoords(GetPlayerPed(PlayerId()), false)
+                            local object = GetClosestObjectOfType(position.x, position.y,position.z, 15.0,GetHashKey(Setting['พร็อพ']),false, false, false)
+                            if object ~= 0 then DeleteObject(object) end
+                        end
                         exports['okokNotify']:Alert("Cooldown", "คุณได้คลูดาวน์เสร็จแล้ว", 5000, 'success')
+                        if Setting['Debug-Call'] then
+                            print("^5PRP-Debug : ^7Cooldown Success :", playerName, playerJob and playerJob.name or "nil")
+                        end
                     end
+                else
+                    Citizen.Wait(Setting['ดีเลย์การเช็คในโซน'])
+                    AED = false
                 end
-            else
-                Citizen.Wait(Setting['ดีเลย์การเช็คในโซน'])
-                AED = false
             end
         end
     end)
 end
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(0)
+        local playerped = GetPlayerPed(-1)
+
+        if passive then
+            local coords = GetEntityCoords(playerped)
+
+            local currentTime = GetGameTimer()
+            local remainingTime = cooldownTime - (currentTime - cooldownStartTime)
+            if remainingTime < 0 then
+                remainingTime = 0
+            end
+            for k, v in pairs(GetNeareastPlayers()) do
+                local x, y, z = table.unpack(v.coords)
+                time = 1
+                local textSize = 0.60  -- ขนาดของตัวอักษร
+                if IsPedInAnyVehicle(playerped, false) then
+                    textSize = 1.0  -- ขนาดของตัวอักษรเมื่ออยู่ในรถ
+                end
+                Draw3DText(coords.x, coords.y, coords.z + 1.0, "🐔", textSize)
+                Draw3DText(coords.x, coords.y, coords.z + 0.9, "Cooldown : " .. math.floor(remainingTime / 1000) .. "s", textSize - 0.10)
+            end
+        end
+    end
+end)
+
+
+function GetNeareastPlayers()
+    local playerPed = PlayerPedId()
+    local players_clean = {}
+    local playerCoords = GetEntityCoords(playerPed)
+    local players, _ = GetPlayersInArea(playerCoords, Setting['ระยะการมองเห็น'])
+    for i = 1, #players, 1 do
+        local playerServerId = GetPlayerServerId(players[i])
+        local player = GetPlayerFromServerId(playerServerId)
+        local ped = GetPlayerPed(player)
+        if IsEntityVisible(ped) then
+            table.insert(players_clean, {coords = GetEntityCoords(ped)})
+        end
+    end
+    return players_clean
+end
+
+
+function GetPlayersInArea(coords, area)
+	local players, playersInArea = GetPlayers(), {}
+	local coords = vector3(coords.x, coords.y, coords.z)
+	for i=1, #players, 1 do
+		local target = GetPlayerPed(players[i])
+		local targetCoords = GetEntityCoords(target)
+
+		if #(coords - targetCoords) <= area then
+			table.insert(playersInArea, players[i])
+		end
+	end
+	return playersInArea
+end
+function GetPlayers()
+    local players = {}
+    for _, player in ipairs(GetActivePlayers()) do
+        local ped = GetPlayerPed(player)
+        if DoesEntityExist(ped) then
+            table.insert(players, player)
+        end
+    end
+    return players
+end
+
 
 -- if Setting['DisableControl'] then
 Citizen.CreateThread(function()
@@ -248,16 +336,22 @@ function RespawnPed(ped, coords, heading)
 end
 RegisterFontFile('RSU') 
 local fontId = RegisterFontId('RSU') 
-function DrawText3D(x, y, z, text)
-    local onScreen, _x, _y = World3dToScreen2d(x, y, z)
 
+function Draw3DText(x, y, z, text, newScale)
+    local onScreen, _x, _y = World3dToScreen2d(x, y, z)
     if onScreen then
-        SetTextScale(0.35, 0.35)
+        local dist = GetDistanceBetweenCoords(GetGameplayCamCoords(), x, y, z, 1)
+        local scale = newScale * (1 / dist) * (1 / GetGameplayCamFov()) * 100
+        SetTextScale(scale, scale)
         SetTextFont(fontId)
         SetTextProportional(1)
-        SetTextColour(255, 255, 255, 215)
+        SetTextColour(255, 255, 255, 255)
+        SetTextDropShadow(0, 0, 0, 0, 255)
+        SetTextDropShadow()
+        SetTextEdge(4, 0, 0, 0, 255)
+        SetTextOutline()
         SetTextEntry("STRING")
-        SetTextCentre(true)
+        SetTextCentre(1)
         AddTextComponentString(text)
         DrawText(_x, _y)
     end

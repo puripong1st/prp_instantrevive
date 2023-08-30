@@ -57,7 +57,7 @@ AddEventHandler('playerSpawned', function()
 		NetworkSetFriendlyFireOption(true)
 
 		ESX.TriggerServerCallback('prp_instantrevive:getDeathStatus', function(isDead)
-			if isDead and Setting.AntiCombatLog then
+			if isDead and Setting['Debug-Call'] then
 				while not PlayerLoaded do
 					Citizen.Wait(1000)
 				end
@@ -171,10 +171,6 @@ function StartDeadTimer()
                 ClearBody()
             end
 
-            if IsControlPressed(0, Keys['G']) and not callPolice then
-                CallPolice()
-            end
-
 			RespawnTime(secondsToClock(deadTimer)) -- send to ui
 		end
 
@@ -200,8 +196,10 @@ end
 function RespawnByJob()
     local playerPed = PlayerPedId()
     local respawnCoords = nil
-
-    print("playerJob:", playerJob and playerJob.name or "nil") -- Add this line
+	local playerName = GetPlayerName(PlayerId())
+	if Setting['Debug-Call'] then
+        print("^5PRP-Debug : ^7PlayerJob :", playerJob and playerJob.name or "nil") -- Add this line
+	end
 
     if playerJob and playerJob.name == 'burapon' then
         respawnCoords = vector3(-1743.93, 167.08, 64.59) 
@@ -220,6 +218,10 @@ function RespawnByJob()
         y = respawnCoords.y,
         z = respawnCoords.z
     }
+	if Setting['Debug-Call'] then
+        local playerName = GetPlayerName(PlayerId())
+        print("^5PRP-Debug : ^7Respawning:", playerName, playerJob and playerJob.name or "nil", respawnCoords)
+    end
     ESX.SetPlayerData('lastPosition', formattedCoords)
     ESX.SetPlayerData('loadout', {})
     TriggerServerEvent('esx:updateLastPosition', formattedCoords)

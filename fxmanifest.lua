@@ -9,12 +9,18 @@ version '1.3'
 server_scripts {
 	'@mysql-async/lib/MySQL.lua',
 	'Setting.lua',
+	'Setting-Cooldown.lua',
+	'Setting-Heal.lua',
+	'Setting-Revive.lua',
 	'SourceCode-Cooldown/server.lua',
 	'SourceCode-Heal/server.lua',
 	'SourceCode-Revive/server.lua'
 }
 client_scripts {
 	'Setting.lua',
+	'Setting-Cooldown.lua',
+	'Setting-Heal.lua',
+	'Setting-Revive.lua',
 	'SourceCode-Cooldown/client.lua',
 	'SourceCode-Heal/client.lua',
 	'SourceCode-Revive/client.lua'

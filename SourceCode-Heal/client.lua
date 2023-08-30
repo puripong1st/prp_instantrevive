@@ -3,6 +3,7 @@ local fontId = RegisterFontId('RSU') -- the name from the .xml
 local ZE = GetCurrentResourceName()
 local isHeal = false
 local useItem = false
+local isUsingPainkiller = false
 
 ESX = nil
 Citizen.CreateThread(function()
@@ -14,6 +15,7 @@ Citizen.CreateThread(function()
 	while ESX.GetPlayerData().job == nil do
 		Citizen.Wait(10)
 	end
+    
 
 	ESX.PlayerData = ESX.GetPlayerData()
 end)
@@ -42,39 +44,39 @@ end)
 
 RegisterNetEvent('prp_instantrevive:useAed')
 AddEventHandler('prp_instantrevive:useAed', function()
-
-
-    if not IsPedOnFoot(PlayerPedId()) then
-        TriggerEvent("pNotify:SendNotification", {
-            text = "ไม่สามารถใช้งานได้",
-            type = "error",
-            timeout = 3000,
-            layout = "centerRight",
-            queue = "global"
-        })
-        return
-    end
+    if not isUsingAed then
+        isUsingAed = true
+        if not IsPedOnFoot(PlayerPedId()) then
+            TriggerEvent("pNotify:SendNotification", {
+                text = "ไม่สามารถใช้งานได้",
+                type = "error",
+                timeout = 3000,
+                layout = "centerRight",
+                queue = "global"
+            })
+            return
+        end
     
-    local closestPlayer, closestDistance = ESX.Game.GetClosestPlayer()
+        local closestPlayer, closestDistance = ESX.Game.GetClosestPlayer()
 
-    if closestPlayer == -1 or closestDistance > 1.3 then
-        TriggerEvent("pNotify:SendNotification", {
-            text = "ไม่มีผู้เล่นอยู่ใกล้",
-            type = "error",
-            timeout = 3000,
-            layout = "centerRight",
-            queue = "global"
-        })
-        return
-    else
+        if closestPlayer == -1 or closestDistance > 1.3 then
+            TriggerEvent("pNotify:SendNotification", {
+                text = "ไม่มีผู้เล่นอยู่ใกล้",
+                type = "error",
+                timeout = 3000,
+                layout = "centerRight",
+                queue = "global"
+            })
+            return
+        else
 
-        local closestPlayerPed = GetPlayerPed(closestPlayer)
+            local closestPlayerPed = GetPlayerPed(closestPlayer)
 
-        if IsPedDeadOrDying(closestPlayerPed, 1) then
+            if IsPedDeadOrDying(closestPlayerPed, 1) then
 
-            useItem = true
+                useItem = true
 
-            TriggerEvent("mythic_progbar:client:progress", {
+                TriggerEvent("mythic_progbar:client:progress", {
                     name = "revive",
                     duration = Setting.ReviveTime,
                     label = "กำลังปั๊มหัวใจ",
@@ -87,33 +89,34 @@ AddEventHandler('prp_instantrevive:useAed', function()
                         disableCombat = false,
                     },
 
-            }, function(status)
-                if not status then
-                    TriggerServerEvent('prp_instantrevive:removeItem', 'aed')
-                    TriggerServerEvent('prp_instantrevive:revive', GetPlayerServerId(closestPlayer))
-                    useItem = false
-                end
-            end)
-
-
-            local lib, anim = 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest'
-            local cwhile = math.ceil(Setting.ReviveTime/1000)
-            for i = 1, cwhile, 1 do
-                Citizen.Wait(900)
-
-                ESX.Streaming.RequestAnimDict(lib, function()
-                    TaskPlayAnim(PlayerPedId(), lib, anim, 8.0, -8.0, -1, 0, 0, false, false, false)
+                }, function(status)
+                    if not status then
+                        TriggerServerEvent('prp_instantrevive:removeItem', 'aed')
+                        TriggerServerEvent('prp_instantrevive:revive_heal', GetPlayerServerId(closestPlayer))
+                        useItem = false
+                    end
                 end)
-            end
 
-        else
-            TriggerEvent("pNotify:SendNotification", {
-                text = "ผูเล่นไม่ได้สลบอยู่",
-                type = "error",
-                timeout = 3000,
-                layout = "centerRight",
-                queue = "global"
-            })
+
+                local lib, anim = 'mini@cpr@char_a@cpr_str', 'cpr_pumpchest'
+                local cwhile = math.ceil(Setting.ReviveTime/1000)
+                for i = 1, cwhile, 1 do
+                    Citizen.Wait(900)
+
+                    ESX.Streaming.RequestAnimDict(lib, function()
+                        TaskPlayAnim(PlayerPedId(), lib, anim, 8.0, -8.0, -1, 0, 0, false, false, false)
+                    end)
+                end
+                isUsingAed = false
+            else
+                TriggerEvent("pNotify:SendNotification", {
+                    text = "ผูเล่นไม่ได้สลบอยู่",
+                    type = "error",
+                    timeout = 3000,
+                    layout = "centerRight",
+                    queue = "global"
+                })
+            end
         end
     end
 
@@ -133,58 +136,62 @@ end)
 
 RegisterNetEvent('prp_instantrevive:usePainkiller')
 AddEventHandler('prp_instantrevive:usePainkiller', function()
+    if not isUsingPainkiller then
+        isUsingPainkiller = true
 
-    if not IsPedOnFoot(PlayerPedId()) then
-        TriggerEvent("pNotify:SendNotification", {
-            text = "ไม่สามารถใช้งานได้",
-            type = "error",
-            timeout = 3000,
-            layout = "centerRight",
-            queue = "global"
-        })
-        return
-    end
-
-    if not isHeal then
-        isHeal = true
-        useItem = true
-
-        RequestAnimDict("anim@heists@narcotics@funding@gang_idle")
-        while not HasAnimDictLoaded("anim@heists@narcotics@funding@gang_idle") do
-            Citizen.Wait(0)
+        if not IsPedOnFoot(PlayerPedId()) then
+            TriggerEvent("pNotify:SendNotification", {
+                text = "ไม่สามารถใช้งานได้",
+                type = "error",
+                timeout = 3000,
+                layout = "centerRight",
+                queue = "global"
+            })
+            return
         end
+    
+        if not isHeal then
+            isHeal = true
+            useItem = true
 
-        TaskPlayAnim(PlayerPedId(), 'anim@heists@narcotics@funding@gang_idle', 'gang_chatting_idle01', 8.0, 8.0, -1, 1, 1, 0, 0, 0)
-
-        TriggerEvent("mythic_progbar:client:progress", {
-            name = "heal",
-            duration = 3000,
-            label = "กำลังพันแผล",
-            useWhileDead = true,
-            canCancel = false,
-            controlDisables = {
-                disableMovement = false,
-                disableCarMovement = true,
-                disableMouse = false,
-                disableCombat = true,
-            },
-           
-        }, function(status)
-            if not status then
-                TriggerServerEvent('prp_instantrevive:removeItem', 'bandage')
-                TriggerEvent('prp_instantrevive:heal', 'small')
-                isHeal = false
-                useItem = false
+            RequestAnimDict("anim@heists@narcotics@funding@gang_idle")
+            while not HasAnimDictLoaded("anim@heists@narcotics@funding@gang_idle") do
+                Citizen.Wait(0)
             end
-        end)
-    else
-        TriggerEvent("pNotify:SendNotification", {
-            text = "รอสักครู่",
-            type = "error",
-            timeout = 3000,
-            layout = "centerRight",
-            queue = "global"
-        })
+
+            TaskPlayAnim(PlayerPedId(), 'anim@heists@narcotics@funding@gang_idle', 'gang_chatting_idle01', 8.0, 8.0, -1, 1, 1, 0, 0, 0)
+
+            TriggerEvent("mythic_progbar:client:progress", {
+                name = "heal",
+                duration = 3000,
+                label = "กำลังพันแผล",
+                useWhileDead = true,
+                canCancel = false,
+                controlDisables = {
+                    disableMovement = false,
+                    disableCarMovement = true,
+                    disableMouse = false,
+                    disableCombat = true,
+                },
+           
+            }, function(status)
+                if not status then
+                    TriggerServerEvent('prp_instantrevive:removeItem', 'bandage')
+                    TriggerEvent('prp_instantrevive:heal', 'small')
+                    isHeal = false
+                    useItem = false
+                end
+            end)
+            isUsingPainkiller = false
+        else
+            TriggerEvent("pNotify:SendNotification", {
+                text = "รอสักครู่",
+                type = "error",
+                timeout = 3000,
+                layout = "centerRight",
+                queue = "global"
+            })
+        end
     end
 end)
 
@@ -208,8 +215,8 @@ AddEventHandler('prp_instantrevive:heal', function(healType)
 end)
 
 
-RegisterNetEvent('prp_instantrevive:revive')
-AddEventHandler('prp_instantrevive:revive', function()
+RegisterNetEvent('prp_instantrevive:revive_heal')
+AddEventHandler('prp_instantrevive:revive_heal', function()
 	local playerPed = PlayerPedId()
 	local coords = GetEntityCoords(playerPed)
 

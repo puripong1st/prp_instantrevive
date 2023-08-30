@@ -20,34 +20,6 @@ AddEventHandler('prp_instantrevive:reviveFast', function()
 end)
 
 
-TriggerEvent('es:addGroupCommand', 'revive', 'admin', function(source, args, user)
-	if args[1] ~= nil then
-		if GetPlayerName(tonumber(args[1])) ~= nil then
-			print(('prp_instantrevive: %s used admin revive'):format(GetPlayerIdentifiers(source)[1]))
-			TriggerClientEvent('prp_instantrevive:revive', tonumber(args[1]))
-		end
-	else
-		TriggerClientEvent('prp_instantrevive:revive', source)
-	end
-end, function(source, args, user)
-	TriggerClientEvent('chat:addMessage', source, { args = { '^1SYSTEM', 'Insufficient Permissions.' } })
-end, { help = "revive", params = {{ name = 'id' }} })
-
-TriggerEvent('es:addGroupCommand', 'reviveall', 'admin', function(source, args)
-	if args[1] ~= nil then
-		if GetPlayerName(tonumber(args[1])) ~= nil then
-			print(('prp_instantrevive: %s used admin reviveall'):format(GetPlayerIdentifiers(source)[1]))
-			TriggerClientEvent('prp_instantrevive:reviveall', tonumber(args[1]))
-		end
-	else
-		TriggerClientEvent('prp_instantrevive:reviveall', -1)
-	end
-end, function(source, args, user)
-	TriggerClientEvent('chat:addMessage', source, { args = { '^1SYSTEM', 'Insufficient Permissions.' } })
-end, { help = "revive All" })
-
-
-
 ESX.RegisterServerCallback('prp_instantrevive:getDeathStatus', function(source, cb)
 	local identifier = GetPlayerIdentifiers(source)[1]
 

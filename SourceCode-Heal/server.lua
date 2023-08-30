@@ -12,10 +12,10 @@ function IsInventoryAvailable(xPlayer, class, amount)
 	end
 end
 
-RegisterServerEvent('prp_instantrevive:revive')
-AddEventHandler('prp_instantrevive:revive', function(target)
+RegisterServerEvent('prp_instantrevive:revive_heal')
+AddEventHandler('prp_instantrevive:revive_heal', function(target)
 	local xPlayer = ESX.GetPlayerFromId(source)
-	TriggerClientEvent('prp_instantrevive:revive', target)
+	TriggerClientEvent('prp_instantrevive:revive_heal', target)
 end)
 
 ESX.RegisterUsableItem('bandage', function(source)
